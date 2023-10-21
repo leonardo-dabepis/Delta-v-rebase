@@ -20,7 +20,7 @@
           triangle_flare: Emagged
   - type: PointLight
     radius: 2
-    color: "#F0A28"
+    color: "#2F0A28"
   - type: Fixtures
     fixtures:
       fix1:
@@ -78,7 +78,7 @@
       - id: WelderIfrit
   - type: Hands
   - type: RandomMetadata
-    nameSegments: [names_golem]
+    nameSegments: [names_golem] # I would like if eventually they got their own set of names. Something geometric and bigbrained sounding.
   - type: PotentialPsionic
   - type: Psionic
     removable: false
@@ -97,7 +97,7 @@
   parent: WelderExperimental
   id: WelderIfrit
   name: tribarine flame array
-  description: Orbs of fire that the tribarine can use to weld things.
+  description: Orbs of fire that the tribarine can use to weld.
   components:
   - type: Sprite
     sprite: DeltaV/Objects/Tools/triangle_spice.rsi
@@ -117,16 +117,16 @@
       types: # When lit, negate standard melee damage and replace with heat
         Heat: 10
         Blunt: -10
-#    welderOnSounds:
-#      collection: WelderIfritHandOn
-#    welderOffSounds:
-#      collection: WelderIfritHandOff
-#  - type: Tool
-#    useSound:
-#      collection: WelderIfritHand
-#  - type: MeleeWeapon
-#    soundHit:
-#      collection: WelderIfritHand
+    welderOnSounds:
+      collection: WelderIfritHandOn
+    welderOffSounds:
+      collection: WelderIfritHandOff
+  - type: Tool
+    useSound:
+      collection: WelderIfritHand
+  - type: MeleeWeapon
+    soundHit:
+      collection: WelderIfritHand
 # TODO some way to give the MeleeWeapon a separate soundHit for when it's on,
 # similar to EnergySword. will have to go in ToolSystem.Welder.cs
 # for now, just make it sound like it's on fire no matter what because it
