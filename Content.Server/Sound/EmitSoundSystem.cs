@@ -41,7 +41,6 @@ public sealed class EmitSoundSystem : SharedEmitSoundSystem
 
         SubscribeLocalEvent<EmitSoundOnTriggerComponent, TriggerEvent>(HandleEmitSoundOnTrigger);
         SubscribeLocalEvent<EmitSoundOnUIOpenComponent, AfterActivatableUIOpenEvent>(HandleEmitSoundOnUIOpen);
-        SubscribeLocalEvent<EmitSoundOnInteractUsingComponent, InteractUsingEvent>(HandleEmitSoundOnInteractUsing);
     }
 
     private void HandleEmitSoundOnUIOpen(EntityUid uid, EmitSoundOnUIOpenComponent component, AfterActivatableUIOpenEvent args)
@@ -53,13 +52,5 @@ public sealed class EmitSoundSystem : SharedEmitSoundSystem
     {
         TryEmitSound(uid, component, args.User, false);
         args.Handled = true;
-    }
-    private void HandleEmitSoundOnInteractUsing(EntityUid uid, EmitSoundOnInteractUsingComponent component, InteractUsingEvent args)
-    {
-        var curUsedItemID = Prototype(args.Used)?.ID;
-        if (component.UsedItemID == curUsedItemID)
-        {
-            TryEmitSound(uid, component, args.User, false);
-        }
     }
 }
