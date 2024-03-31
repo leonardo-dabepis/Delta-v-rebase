@@ -2,13 +2,17 @@ using Content.Server.Explosion.EntitySystems;
 using Content.Server.Sound.Components;
 using Content.Shared.UserInterface;
 using Content.Shared.Sound;
-using Robust.Shared.Random;
-using Content.Shared.Interaction;
+using Content.Shared.Sound.Components;
+using Robust.Shared.Timing;
+using Robust.Shared.Network;
 
 namespace Content.Server.Sound;
 
 public sealed class EmitSoundSystem : SharedEmitSoundSystem
 {
+    [Dependency] private readonly IGameTiming _timing = default!;
+    [Dependency] private readonly INetManager _net = default!;
+
     public override void Update(float frameTime)
     {
         base.Update(frameTime);
@@ -19,18 +23,13 @@ public sealed class EmitSoundSystem : SharedEmitSoundSystem
             if (!soundSpammer.Enabled)
                 continue;
 
-            soundSpammer.Accumulator += frameTime;
-            if (soundSpammer.Accumulator < soundSpammer.RollInterval)
-            {
-                continue;
-            }
-            soundSpammer.Accumulator -= soundSpammer.RollInterval;
-
-            if (Random.Prob(soundSpammer.PlayChance))
+            if (_timing.CurTime >= soundSpammer.NextSound)
             {
                 if (soundSpammer.PopUp != null)
                     Popup.PopupEntity(Loc.GetString(soundSpammer.PopUp), uid);
                 TryEmitSound(uid, soundSpammer, predict: false);
+
+                SpamEmitSoundReset((uid, soundSpammer));
             }
         }
     }
@@ -41,7 +40,8 @@ public sealed class EmitSoundSystem : SharedEmitSoundSystem
 
         SubscribeLocalEvent<EmitSoundOnTriggerComponent, TriggerEvent>(HandleEmitSoundOnTrigger);
         SubscribeLocalEvent<EmitSoundOnUIOpenComponent, AfterActivatableUIOpenEvent>(HandleEmitSoundOnUIOpen);
-        SubscribeLocalEvent<EmitSoundOnInteractUsingComponent, InteractUsingEvent>(HandleEmitSoundOnInteractUsing);
+
+        SubscribeLocalEvent<SpamEmitSoundComponent, MapInitEvent>(HandleSpamEmitSoundMapInit);
     }
 
     private void HandleEmitSoundOnUIOpen(EntityUid uid, EmitSoundOnUIOpenComponent component, AfterActivatableUIOpenEvent args)
@@ -54,12 +54,39 @@ public sealed class EmitSoundSystem : SharedEmitSoundSystem
         TryEmitSound(uid, component, args.User, false);
         args.Handled = true;
     }
-    private void HandleEmitSoundOnInteractUsing(EntityUid uid, EmitSoundOnInteractUsingComponent component, InteractUsingEvent args)
+
+    private void HandleSpamEmitSoundMapInit(Entity<SpamEmitSoundComponent> entity, ref MapInitEvent args)
     {
-        var curUsedItemID = Prototype(args.Used)?.ID;
-        if (component.UsedItemID == curUsedItemID)
-        {
-            TryEmitSound(uid, component, args.User, false);
-        }
+        SpamEmitSoundReset(entity);
+
+        // Prewarm so multiple entities have more variation.
+        entity.Comp.NextSound -= Random.Next(entity.Comp.MaxInterval);
+        Dirty(entity);
+    }
+
+    private void SpamEmitSoundReset(Entity<SpamEmitSoundComponent> entity)
+    {
+        if (_net.IsClient)
+            return;
+
+        entity.Comp.NextSound = _timing.CurTime + ((entity.Comp.MinInterval < entity.Comp.MaxInterval)
+            ? Random.Next(entity.Comp.MinInterval, entity.Comp.MaxInterval)
+            : entity.Comp.MaxInterval);
+
+        Dirty(entity);
+    }
+
+    public override void SetEnabled(Entity<SpamEmitSoundComponent?> entity, bool enabled)
+    {
+        if (!Resolve(entity, ref entity.Comp, false))
+            return;
+
+        if (entity.Comp.Enabled == enabled)
+            return;
+
+        entity.Comp.Enabled = enabled;
+
+        if (enabled)
+            SpamEmitSoundReset((entity, entity.Comp));
     }
 }
